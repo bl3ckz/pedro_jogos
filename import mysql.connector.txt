@@ -1,0 +1,184 @@
+import mysql.connector
+
+# Classe principal: Jogador
+class Jogador:
+    def __init__(self, nome, idade, email):
+        """
+        Construtor da classe Jogador. Inicializa os atributos nome, idade e email.
+        """
+        self.nome = nome
+        self.idade = idade
+        self.__email = email  # Atributo privado
+
+    # Método para exibir os dados do jogador
+    def exibir_dados(self):
+        """
+        Método que exibe os dados do jogador.
+        """
+        print(f"Nome: {self.nome}")
+        print(f"Idade: {self.idade}")
+        print(f"Email: {self.get_email()}")
+
+    # Método para modificar a pontuação do jogador
+    def adicionar_pontos(self, pontos):
+        """
+        Método que simula a adição de pontos ao jogador.
+        """
+        self.pontos = pontos
+        print(f"Pontuação de {self.nome}: {self.pontos} pontos.")
+
+    # Métodos get e set para o atributo privado __email
+    def get_email(self):
+        """
+        Método para obter o email do jogador.
+        """
+        return self.__email
+
+    def set_email(self, novo_email):
+        """
+        Método para modificar o email do jogador.
+        """
+        self.__email = novo_email
+
+    # Método que verifica se o jogador é maior de idade
+    def verificar_maioridade(self):
+        """
+        Método para verificar se o jogador é maior de idade.
+        """
+        if self.idade >= 18:
+            return True
+        else:
+            return False
+
+# Subclasse: JogadorRanking
+class JogadorRanking(Jogador):
+    def __init__(self, nome, idade, email, pontos=0):
+        """
+        Construtor da subclasse JogadorRanking, que herda da classe Jogador.
+        Adiciona um atributo exclusivo para armazenar os pontos.
+        """
+        super().__init__(nome, idade, email)
+        self.pontos = pontos  # Novo atributo exclusivo na subclasse
+
+    # Sobrescrevendo o método exibir_dados para incluir pontos
+    def exibir_dados(self):
+        """
+        Método sobrescrito que exibe os dados do jogador e os pontos.
+        """
+        super().exibir_dados()  # Chama o método da classe pai
+        print(f"Pontuação: {self.pontos} pontos.")
+
+    # Método exclusivo da subclasse para alterar os pontos
+    def atualizar_pontos(self, novos_pontos):
+        """
+        Método para atualizar a pontuação do jogador no ranking.
+        """
+        self.pontos = novos_pontos
+        print(f"Pontuação atualizada de {self.nome}: {self.pontos} pontos.")
+
+    # Método para comparar jogadores com base na pontuação (polimorfismo)
+    def comparar_ranking(self, outro_jogador):
+        """
+        Método para comparar o ranking dos jogadores.
+        """
+        if self.pontos > outro_jogador.pontos:
+            print(f"{self.nome} está à frente de {outro_jogador.nome}.")
+        elif self.pontos < outro_jogador.pontos:
+            print(f"{outro_jogador.nome} está à frente de {self.nome}.")
+        else:
+            print(f"{self.nome} e {outro_jogador.nome} estão empatados.")
+
+# Função para conectar ao banco de dados MySQL
+def conectar_banco():
+    """
+    Função para criar uma conexão com o banco de dados MySQL no XAMPP.
+    """
+    conexao = mysql.connector.connect(
+        host="localhost",  # Host do banco de dados
+        user="root",       # Usuário do banco de dados
+        password="",       # Senha do banco de dados (geralmente em branco no XAMPP)
+        database="jogos_escolares"  # Nome do banco de dados
+    )
+    return conexao
+
+# Função para inserir um jogador no banco de dados
+def inserir_jogador(jogador):
+    """
+    Função para inserir um jogador no banco de dados.
+    """
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    cursor.execute('''
+        INSERT INTO jogadores (nome, idade, email, pontos)
+        VALUES (%s, %s, %s, %s)
+    ''', (jogador.nome, jogador.idade, jogador.get_email(), jogador.pontos))
+    conexao.commit()
+    conexao.close()
+
+# Função para consultar jogadores e seu ranking
+def consultar_ranking():
+    """
+    Função para consultar o ranking de jogadores no banco de dados.
+    """
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    cursor.execute('SELECT nome, pontos FROM jogadores ORDER BY pontos DESC')
+    ranking = cursor.fetchall()
+    conexao.close()
+    
+    print("\nRanking dos jogadores:")
+    for i, (nome, pontos) in enumerate(ranking, 1):
+        print(f"{i}. {nome} - {pontos} pontos")
+
+# Função para excluir um jogador do banco de dados
+def excluir_jogador(nome):
+    """
+    Função para excluir um jogador do banco de dados com base no nome.
+    """
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    cursor.execute('DELETE FROM jogadores WHERE nome = %s', (nome,))
+    conexao.commit()
+    conexao.close()
+
+# Função para realizar o cadastro de um jogador
+def cadastrar_jogador():
+    """
+    Função para cadastrar um jogador.
+    """
+    nome = input("Digite o nome do jogador: ")
+    idade = int(input("Digite a idade do jogador: "))
+    email = input("Digite o e-mail do jogador: ")
+    pontos = int(input("Digite a pontuação do jogador: "))
+    jogador = JogadorRanking(nome, idade, email, pontos)
+    inserir_jogador(jogador)
+    print(f"Jogador {nome} cadastrado com sucesso!")
+
+# Função principal
+def main():
+    """
+    Função principal para executar o programa.
+    """
+    while True:
+        print("\n1. Cadastrar Jogador")
+        print("2. Consultar Ranking")
+        print("3. Excluir Jogador")
+        print("4. Sair")
+        
+        escolha = int(input("Escolha uma opção: "))
+        
+        if escolha == 1:
+            cadastrar_jogador()
+        elif escolha == 2:
+            consultar_ranking()
+        elif escolha == 3:
+            nome_excluir = input("Digite o nome do jogador a ser excluído: ")
+            excluir_jogador(nome_excluir)
+            print(f"Jogador {nome_excluir} excluído com sucesso!")
+        elif escolha == 4:
+            break
+        else:
+            print("Opção inválida. Tente novamente.")
+
+if __name__ == "__main__":
+    main()
